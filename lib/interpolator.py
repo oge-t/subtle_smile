@@ -10,18 +10,25 @@ import datetime
 
 
 class InterpolatedCurve:
-    def __init__(self, times, values):
+    def __init__(self, times, values, interpolation_fnc=None):
         self.times = times
         self.values = values
         ASOFDATE=datetime.datetime(2020, 4, 30)
         self.dates = [ASOFDATE+datetime.timedelta(days=timeval * 365) for timeval in times]
-        self.interpolator = scipy.interpolate.CubicSpline(times, values, bc_type='natural')
-        
+        if (interpolation_fnc is None):
+            self.interpolation_fnc = getLinearInterpEx
+        elif interpolation_fnc.lower() == 'pwc_left_cts':
+            self.interpolation_fnc = getLeftConstantInterpEx
+        elif interpolation_fnc.lower() == 'loglinear':
+            self.interpolation_fnc = getLogLinearInterpEx
         return
-    
-    def __call__(self, t):
-        return self.interpolator(t)
-        
+
+    def __call__(self, dateortimes):
+        if isinstance(dateortimes, list) or isinstance(dateortimes, np.ndarray):
+            return [self.interpolation_fnc(tval, self.times, self.values) for tval in dateortimes]
+        else:
+            return self.interpolation_fnc(dateortimes, self.times, self.values)
+
 
 class SurfaceInterpolator:
     """
@@ -125,7 +132,6 @@ class SurfaceInterpolatorInterp2D:
 
         """
         return self.interp(x, t, dx, dt)[0]
-        #return scipy.interpolate.bisplev(x, t, self.interp, dx, dt).T  # note the transpose
 
 def generate_call_price_interpolator(impvolobj, strikes,
                                      times, domestic_dfcurve, base_dfcurve, spot):
@@ -134,15 +140,15 @@ def generate_call_price_interpolator(impvolobj, strikes,
 
     Parameters
     ----------
-    impvolobj : 
+    impvolobj :
         Implied vol surface
     strikes : list of floats
         Grid of strikes
     times : list of floats
         Grid of times
-    domestic_dfcurve : 
+    domestic_dfcurve :
         (domestic) discount curve
-    base_dfcurve : 
+    base_dfcurve :
         base discount curve or dividend yield curve
     spot : float
         Time zero value of the underlier
@@ -178,7 +184,7 @@ def generate_call_price_interpolator_nonuniform(impvolobj, nrstrikes,
 
     Parameters
     ----------
-    impvolobj : 
+    impvolobj :
         Implied vol surface
     nrstrikes : int
         Number of strikes
@@ -186,7 +192,7 @@ def generate_call_price_interpolator_nonuniform(impvolobj, nrstrikes,
         Grid of times
     domestic_dfcurve :
         (domestic) discount curve
-    base_dfcurve : 
+    base_dfcurve :
         base discount curve or dividend yield curve
     spot : float
         Time zero value of the underlier
@@ -232,7 +238,7 @@ def generate_implied_totalvariance_interpolator(impvolobj, ys, times):
 
     Parameters
     ----------
-    impvolobj : 
+    impvolobj :
         Implied vol surface
     ys : list of floats
         Grid of log-moneynesses
@@ -241,7 +247,7 @@ def generate_implied_totalvariance_interpolator(impvolobj, ys, times):
 
     Returns
     -------
-    interp : 
+    interp :
         Interpolator object
 
     """
@@ -264,7 +270,7 @@ def generate_implied_totalvariance_interpolator_nonuniform(impvolobj, nrys, time
 
     Parameters
     ----------
-    impvolobj : 
+    impvolobj :
         Implied vol surface
     nrys : int
         Number of log-moneynesses
@@ -302,37 +308,41 @@ def generate_implied_totalvariance_interpolator_nonuniform(impvolobj, nrys, time
 def constructShortRateCurve(dfcurve, name=None):
     """
     Construct short rate curve from given discount factors
-    
+
     Parameters
     ----------
-    dfcurve : 
+    dfcurve :
         Discount factor curve
     name : str
         Name of the curve
-        
+
     Returns
     -------
-    ratecurve : 
+    ratecurve :
         Short rate curve
-    
+
     """
     if name is None:
         name = 'shortRate'
     logdfs = [np.log(df) for df in dfcurve.values]
-    
+
     srcurve = {'values': [(logdf1-logdf2)/(t2-t1) for logdf1,logdf2,t1,t2 in zip(logdfs,logdfs[1:],
                                                                          dfcurve.times,dfcurve.times[1:])], 'times':dfcurve.times[:-1]}
-                                                                         
-    shortratecurve = InterpolatedCurve(srcurve['times'], srcurve['values'])
-    
+
+    shortratecurve = InterpolatedCurve(srcurve['times'], srcurve['values'], interpolation_fnc='pwc_left_cts')
+
     return shortratecurve
 
+
+def constructDiscountcurve(times, vals):
+    crv = InterpolatedCurve(times, vals, interpolation_fnc='loglinear')
+    return crv
 
 def getLinearInterpEx(t,tlist,xlist,diffun=lambda x,y:x-y):
     """
     getLinearInterpEx(t,tlist,xlist,diffun=lambda x,y:x-y)
     Linear interpolation. Constant extrapolation.
-    
+
     Parameters
     ----------
     t : float
@@ -343,12 +353,12 @@ def getLinearInterpEx(t,tlist,xlist,diffun=lambda x,y:x-y):
         dependent variables
     diffun : function
         difference function for two *tlist* values
-    
+
     Returns
     -------
     out : float
         Linear interpolation at point *t*
-     
+
     """
     ts,xs=getBracketingPoints(t,tlist,xlist)
     if len(ts)==1:
@@ -357,11 +367,65 @@ def getLinearInterpEx(t,tlist,xlist,diffun=lambda x,y:x-y):
     else:
         w=diffun(t,ts[0])/diffun(ts[1],ts[0])
         return w*xs[1]+(1.0-w)*xs[0]
-    
+
+def getLeftConstantInterpEx(t,tlist,xlist,diffun=None):
+    """
+    Left constant interpolation. Constant extrapolation.
+
+    Parameters
+    ----------
+    t : float
+        point to be interpolated
+    tlist : list of floats
+        independent variables
+    xlist : list of floats
+        dependent variables
+
+    Returns
+    -------
+    out : float
+        Left constant interpolation at point *t*
+
+    """
+    ts,xs=getBracketingPoints(t,tlist,xlist)
+    return xs[0]
+
+
+def getLogLinearInterpEx(t,tlist,xlist,diffun=lambda x,y:x-y):
+    """
+    getLogLinearInterpEx(t,tlist,xlist,diffun=lambda x,y:x-y)
+    Log-linear interpolation. Constant extrapolation.
+
+    Parameters
+    ----------
+    t : float
+        point to be interpolated
+    tlist : list
+        independent variables
+    xlist : list of floats
+        dependent variables
+    diffun : function
+        difference function for two *tlist* values
+
+    Returns
+    -------
+    out : float
+        Log-linear interpolation at point *t*
+
+    """
+    ts,xs=getBracketingPoints(t,tlist,xlist)
+    if len(ts) == 1:
+        return xs[0]
+    lxlist=[math.log(x) for x in xs]
+    w=diffun(t,ts[0])/diffun(ts[1],ts[0])
+    lxi = w*lxlist[1]+(1.0-w)*lxlist[0]
+    return math.exp(lxi)
+
+
 def getBracketingPoints(t,tlist,xlist,left_continuous=True):
     """
     Points bracketing *t*
-    
+
     Parameters
     ----------
     t : float
@@ -370,14 +434,14 @@ def getBracketingPoints(t,tlist,xlist,left_continuous=True):
         independent variables
     xlist : list of floats
         dependent variables
-    
+
     Returns
     -------
     out : list of lists
         Bracketing points
-     
+
     """
-    #print t,tlist,xlist
+    #print(t,tlist,xlist)
     if left_continuous:
         if (t>=tlist[-1]):
             return [[tlist[-1]],[xlist[-1]]]
@@ -394,4 +458,3 @@ def getBracketingPoints(t,tlist,xlist,left_continuous=True):
         else:
             idx = bisect.bisect_left(tlist, t)
             return [[tlist[idx - 1], tlist[idx]], [xlist[idx - 1], xlist[idx]]]
-
