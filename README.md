@@ -44,8 +44,10 @@ For three different cases:
   - **Calibrate_SLV_2DIR.ipynb**: Notebook demonstrating calibration of Leverage surface of the Stochastic Local volatility under stochastic rates.
   - **Reprice_SLV_2DIR.ipynb**: Reprice under the calibrated stochastic local volatility model under stochastic rates.
 
+## Usage:
+Clone the repository. With an installation of Jupyter with Python kernel >=3.6, run notebooks in folders **/LV_2SIR, /SLV_2DIR and /SLV_2SIR** for the Local Volatility with stochastic rates, Stochastic Local volatlity with deterministic rates and Stochastic Local volatility with Stochastic rates respectively.
 
-# Overview of model and Summary of Results
+# Overview of the model and Summary of Results
 
 ## The model (LV2SR)
 This corresponding model for the underlying FX process with 2 (domestic and foreign) rate is assumed to be: 
