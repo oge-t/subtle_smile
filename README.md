@@ -7,7 +7,7 @@ The manuscript that gives the details of the calibration algorithms can be acces
 
 The repository contains implementation of calibration of local volaility surface for EUR/USD currency pair though the example is easily adapted to other currency pairs with appropriately calibrated G1pp parameters and discount curves.
 
-The repository contains notebooks outlining:
+The repository contains notebooks detailing:
 - The calibration procedure 
 - Visualization of local volatility surface
 - Repricing with the calibrated local volality surface
@@ -24,7 +24,7 @@ For three different cases:
 
 - **lib/**: library and utilities for reading and interpolating market data as well as calibration routines.
   - **bsanalytic.py**: Black-Scholes analytic formulas for relevant market instruments
-  - **calibrator.py**: Main utilities for calibrating local volatility surface. Classes include local volatility calibration under Call surface or Total implied volatility (TIV) formulation
+  - **calibrator.py**: Main utilities for calibrating local volatility surface. Classes include local volatility calibration under Call surface or Total implied variance (TIV) formulation
   - **fxivolinterpolator.py**: Utilities for interpolating time-discretized and strike-discretized market data for implied volatility.
   - **surfaces.py**: Classes and utilities for constructing Call surface and TIV surface needed for calibration.
   - **interpolator.py**: Classes and utilities for interpolating constructed TIV and Call surface needed for calibration.
@@ -65,10 +65,14 @@ whereas the foreign short rate evolves in foreign risk neutral measure,
 ## Calibration of local volatility surface (LV2SR)
 The local volality surface or state dependent diffusion coefficient <img src="https://render.githubusercontent.com/render/math?math=\sigma(S_t, t)"> is calibrated in the domestic **T-Forward measure**. The procedure is as follows:
 
-- The underling FX model and the domestic and foreign rates are first simulated in the T-Fwd measure.
+- The calibration is performed in a time slice-by-slice basis.
+- The underling FX model and the domestic and foreign rates are first simulated in the T-Fwd measure with the local volatility until current time slice.
 - The expectation <img src="https://render.githubusercontent.com/render/math?math=\mathbf{E}^{\mathbb{Q}^{\text{T}}}\left[(K r_T^d - S_T r_T^f) \mathbb{1}_{S_T > K}\right]"> is gathered from the T-Fwd simulation of the interest rates and underliers.
+- The following extension to Dupire's formula for stochastic rates is used to compute the local volatility at the current time slice.
 
 <img src="https://render.githubusercontent.com/render/math?math=\huge{\sigma_{\text{LV (stochastic rates)}}^2 = \frac{\frac{\partial C_{\text{BS}}}{\partial T}- P^d(0, T) \mathbb{E}^{Q^{\text{T}}}\left[(K r_T^d - S_T r_T^f) \mathbb{1}_{S_T > K}\right]}{\frac{\partial C_{\text{BS}}}{\partial w} \left[1 - \frac{y}{w} \frac{\partial w}{\partial y} %2B \frac{1}{2} \frac{\partial^2 w}{\partial y^2} %2B \frac{1}{4} \left(\frac{\partial w}{\partial y}\right)^2\left(-\frac{1}{4}- \frac{1}{w} %2B \frac{y^2}{w^2}\right)\right]}}">
+
+- The procedure is repeated for all time slices starting from 0 to maturity.
 
 where: 
 <img src="https://render.githubusercontent.com/render/math?math=T">: Time to maturity 
