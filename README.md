@@ -125,6 +125,12 @@ The leverage function is related to the local volatility calibrated with determi
 
 <img src="https://render.githubusercontent.com/render/math?math=\Large{\sigma_{\text{LV}}(x, t)^2 = L(x, t)^2 \mathbf{E}^{\mathbb{Q}^{\text{(DRN)}}}\left[U_t \mid S_t=x \right]}">
 
+- The conditional expecation <img src="https://render.githubusercontent.com/render/math?math=\mathbf{E}^{\mathbb{Q}^{\text{(DRN)}}}\left[U_t \mid S_t=x \right]"> can be computed by binning the underlier values at time from the simulation sample paths as a function of <img src="https://render.githubusercontent.com/render/math?math=S_t, t">.
+- Alternatively, the expectation can also obtained by regressing on the risk-factor, (here <img src="https://render.githubusercontent.com/render/math?math=S_t">) as described in the paper.
+- The value of <img src="https://render.githubusercontent.com/render/math?math=\sigma_{\text{LV}}(x, t)^2"> is computed from deterministic Dupire's formula.
+- Finally the value of leverage function <img src="https://render.githubusercontent.com/render/math?math=L(x, t)^2"> on the grid is obtained by dividing <img src="https://render.githubusercontent.com/render/math?math=\sigma_{\text{LV}}(x, t)^2"> by <img src="https://render.githubusercontent.com/render/math?math=\mathbf{E}^{\mathbb{Q}^{\text{(DRN)}}}\left[U_t \mid S_t=x \right]">
+
+
 The leverage function calibrated with deterministic rates with different number of monte-carlo calibration paths.
 ![SLV_2DR_Convergence](https://user-images.githubusercontent.com/12563351/141051960-bcf55031-9cd1-419f-87b6-87a48d1588e2.png)
 
@@ -151,6 +157,12 @@ Foreign rates modeled as a second G1pp process:<br>
 
 The calibrated leverage function is related to the local volatility (LV2SR) and the variance process by:
 <img src="https://render.githubusercontent.com/render/math?math=\Large{\sigma_{\text{LV}}(x, t)^2 = L(x, t)^2 \mathbf{E}^{\mathbb{Q}^{\text{T}}} \left[U_t \mid S_t=x \right]}">
+
+- The conditional expecation <img src="https://render.githubusercontent.com/render/math?math=\mathbf{E}^{\mathbb{Q}^{\text{(DRN)}}}\left[U_t \mid S_t=x \right]"> can be computed by binning the underlier values at time from the simulation sample paths as a function of <img src="https://render.githubusercontent.com/render/math?math=S_t, t">.
+- Alternatively, the expectation can also obtained by regressing on the risk-factor, (here <img src="https://render.githubusercontent.com/render/math?math=S_t">) as described in the paper.
+- The value of <img src="https://render.githubusercontent.com/render/math?math=\sigma_{\text{LV}}(x, t)^2"> is computed as in the LV2SIR method.
+- Finally the value of leverage function <img src="https://render.githubusercontent.com/render/math?math=L(x, t)^2"> on the grid is obtained by dividing <img src="https://render.githubusercontent.com/render/math?math=\sigma_{\text{LV}}(x, t)^2"> by <img src="https://render.githubusercontent.com/render/math?math=\mathbf{E}^{\mathbb{Q}^{\text{(DRN)}}}\left[U_t \mid S_t=x \right]">
+
 
 The repriced Call option prices and the implied volatility recovered with the repriced options fall within +- 2 MC errors.
 ![SLV_2SR_maturity_diff_call_and_ivol](https://user-images.githubusercontent.com/12563351/141054532-cb876819-1bf7-4729-b88e-6bdfc7113c50.png)
